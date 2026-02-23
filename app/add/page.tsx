@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import type { Asset } from "@/lib/supabase";
 
 export default function AddAssetPage() {
@@ -47,6 +47,41 @@ export default function AddAssetPage() {
     typeof window !== "undefined" && created
       ? `${window.location.origin}/asset/${created.asset_id}`
       : "";
+  const qrContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleSaveAsJpg = () => {
+    if (!created || typeof document === "undefined") return;
+    const container = qrContainerRef.current;
+    const qrCanvas = container?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!qrCanvas) return;
+
+    const padding = 24;
+    const qrSize = 200;
+    const idHeight = 40;
+    const width = qrSize + padding * 2;
+    const height = padding + idHeight + 16 + qrSize + padding;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.fillStyle = "#1e293b";
+    ctx.font = "bold 24px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(created.asset_id, width / 2, padding + 28);
+
+    ctx.drawImage(qrCanvas, padding, padding + idHeight + 16, qrSize, qrSize);
+
+    const link = document.createElement("a");
+    link.download = `${created.asset_id}-qr.jpg`;
+    link.href = canvas.toDataURL("image/jpeg", 0.92);
+    link.click();
+  };
 
   return (
     <div className="max-w-lg mx-auto">
@@ -59,18 +94,26 @@ export default function AddAssetPage() {
           <p className="text-green-600 dark:text-green-400 font-medium">
             เพิ่มสินทรัพย์สำเร็จ
           </p>
-          <div className="flex flex-col items-center gap-4">
+          <div ref={qrContainerRef} className="flex flex-col items-center gap-4">
             <p className="font-mono font-semibold text-slate-800 dark:text-slate-100">
               {created.asset_id}
             </p>
             <div className="bg-white p-4 rounded-lg border border-slate-200">
-              <QRCodeSVG value={qrUrl} size={200} level="M" />
+              <QRCodeCanvas value={qrUrl} size={200} level="M" />
             </div>
             <p className="text-sm text-slate-500">
               นำ QR Code ไปพิมพ์หรือติดบนสินทรัพย์ แล้วสแกนเพื่อดูรายละเอียด
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={handleSaveAsJpg}
+              className="w-full py-2 px-4 rounded-lg border-2 border-sky-600 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 font-medium"
+            >
+              Save QR + ID เป็น JPG
+            </button>
+            <div className="flex gap-3">
             <button
               type="button"
               onClick={() => {
@@ -94,6 +137,7 @@ export default function AddAssetPage() {
             >
               กลับหน้าแรก
             </button>
+            </div>
           </div>
         </div>
       ) : (

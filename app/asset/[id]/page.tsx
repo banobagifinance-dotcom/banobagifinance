@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import type { Asset } from "@/lib/supabase";
 
 export default function AssetDetailPage() {
@@ -55,6 +55,41 @@ export default function AssetDetailPage() {
 
   const qrUrl =
     typeof window !== "undefined" ? `${window.location.origin}/asset/${id}` : "";
+  const qrContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleSaveAsJpg = () => {
+    if (!asset || typeof document === "undefined") return;
+    const container = qrContainerRef.current;
+    const qrCanvas = container?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!qrCanvas) return;
+
+    const padding = 24;
+    const qrSize = 180;
+    const idHeight = 40;
+    const width = qrSize + padding * 2;
+    const height = padding + idHeight + 16 + qrSize + padding;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.fillStyle = "#1e293b";
+    ctx.font = "bold 24px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(asset.asset_id, width / 2, padding + 28);
+
+    ctx.drawImage(qrCanvas, padding, padding + idHeight + 16, qrSize, qrSize);
+
+    const link = document.createElement("a");
+    link.download = `${asset.asset_id}-qr.jpg`;
+    link.href = canvas.toDataURL("image/jpeg", 0.92);
+    link.click();
+  };
 
   if (loading) {
     return (
@@ -125,11 +160,18 @@ export default function AssetDetailPage() {
           </div>
         </div>
 
-        <div className="px-6 pb-6 flex flex-col items-center">
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">QR Code สำหรับสินทรัพย์นี้</p>
+        <div ref={qrContainerRef} className="px-6 pb-6 flex flex-col items-center gap-3">
+          <p className="text-sm text-slate-500 dark:text-slate-400">QR Code สำหรับสินทรัพย์นี้</p>
           <div className="bg-white p-4 rounded-lg border border-slate-200 inline-block">
-            <QRCodeSVG value={qrUrl} size={180} level="M" />
+            <QRCodeCanvas value={qrUrl} size={180} level="M" />
           </div>
+          <button
+            type="button"
+            onClick={handleSaveAsJpg}
+            className="py-2 px-4 rounded-lg border-2 border-sky-600 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 font-medium"
+          >
+            Save QR + ID เป็น JPG
+          </button>
         </div>
       </div>
 
