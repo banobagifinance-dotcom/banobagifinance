@@ -1,4 +1,4 @@
-# Thehaggi Assets
+# Thehagi Assets
 
 ระบบจัดการสินทรัพย์ พร้อม QR Code สำหรับติดบนสินทรัพย์และสแกนดูรายละเอียด
 
@@ -16,7 +16,7 @@
 ### 1. Clone และติดตั้ง dependencies
 
 ```bash
-cd ThehaggiAssets
+cd ThehagiAssets
 npm install
 ```
 

@@ -10,7 +10,7 @@
 เปิด PowerShell หรือ Command Prompt แล้วไปที่โฟลเดอร์โปรเจกต์:
 
 ```bash
-cd c:\Users\UsEr\Documents\web\ThehaggiAssets
+cd c:\Users\UsEr\Documents\web\ThehagiAssets
 ```
 
 จากนั้นรันทีละคำสั่ง:
@@ -28,7 +28,7 @@ git status
 จากนั้น:
 
 ```bash
-git commit -m "Initial commit: Thehaggi Assets - ระบบจัดการสินทรัพย์พร้อม QR Code"
+git commit -m "Initial commit: Thehagi Assets - ระบบจัดการสินทรัพย์พร้อม QR Code"
 git branch -M main
 git push -u origin main
 ```

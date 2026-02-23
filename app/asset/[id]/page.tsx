@@ -185,7 +185,7 @@ export default function AssetDetailPage() {
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mt-6 flex flex-wrap gap-3 justify-center">
         {user && (
           <Link
             href={`/asset/${id}/edit`}
