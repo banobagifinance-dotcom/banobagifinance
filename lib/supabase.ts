@@ -16,6 +16,7 @@ export type Asset = {
   name: string;
   date: string;
   price: number;
+  description: string | null;
   image_url: string | null;
   created_at: string;
 };

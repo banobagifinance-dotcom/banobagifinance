@@ -7,9 +7,12 @@ create table if not exists public.assets (
   name text not null,
   date date not null,
   price numeric not null default 0,
+  description text,
   image_url text,
   created_at timestamptz not null default now()
 );
+
+-- If table already exists, add column: alter table public.assets add column if not exists description text;
 
 -- Allow public read/write for demo (tighten RLS in production if needed)
 alter table public.assets enable row level security;

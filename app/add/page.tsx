@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
+import { useAuth } from "@/lib/auth-context";
 import type { Asset } from "@/lib/supabase";
 
 export default function AddAssetPage() {
   const router = useRouter();
+  const { user, loading: authLoading, getAccessToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Asset | null>(null);
@@ -15,8 +17,15 @@ export default function AddAssetPage() {
     name: "",
     date: new Date().toISOString().slice(0, 10),
     price: "",
+    description: "",
     image: null as File | null,
   });
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/login?redirect=" + encodeURIComponent("/add"));
+    }
+  }, [authLoading, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,9 +36,15 @@ export default function AddAssetPage() {
     fd.set("name", form.name.trim());
     fd.set("date", form.date);
     fd.set("price", form.price.trim() || "0");
+    if (form.description.trim()) fd.set("description", form.description.trim());
     if (form.image) fd.set("image", form.image);
+    const token = getAccessToken();
     try {
-      const res = await fetch("/api/assets", { method: "POST", body: fd });
+      const res = await fetch("/api/assets", {
+        method: "POST",
+        body: fd,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "เกิดข้อผิดพลาด");
@@ -83,9 +98,17 @@ export default function AddAssetPage() {
     link.click();
   };
 
+  if (authLoading || !user) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-pulse text-slate-500">กำลังโหลด...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6">
+      <h1 className="text-2xl font-bold text-slate-100 mb-6">
         เพิ่มสินทรัพย์
       </h1>
 
@@ -109,7 +132,7 @@ export default function AddAssetPage() {
             <button
               type="button"
               onClick={handleSaveAsJpg}
-              className="w-full py-2 px-4 rounded-lg border-2 border-sky-600 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 font-medium"
+              className="w-full py-2 px-4 rounded-lg border-2 border-sky-600 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 font-medium transition-colors duration-200"
             >
               Save QR + ID เป็น JPG
             </button>
@@ -123,17 +146,18 @@ export default function AddAssetPage() {
                   name: "",
                   date: new Date().toISOString().slice(0, 10),
                   price: "",
+                  description: "",
                   image: null,
                 });
               }}
-              className="flex-1 py-2 px-4 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              className="flex-1 py-2 px-4 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-200"
             >
               เพิ่มรายการใหม่
             </button>
             <button
               type="button"
               onClick={() => router.push("/")}
-              className="flex-1 py-2 px-4 rounded-lg bg-sky-600 text-white hover:bg-sky-700"
+              className="flex-1 py-2 px-4 rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition-colors duration-200"
             >
               กลับหน้าแรก
             </button>
@@ -158,7 +182,7 @@ export default function AddAssetPage() {
               value={form.asset_id}
               onChange={(e) => setForm((f) => ({ ...f, asset_id: e.target.value }))}
               placeholder="EQ-25-034 หรือ AQ-01-001"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 font-mono text-slate-800 dark:text-slate-100 placeholder-slate-400"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 font-mono text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-colors duration-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none"
             />
           </div>
 
@@ -206,6 +230,19 @@ export default function AddAssetPage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              รายละเอียดสินทรัพย์
+            </label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
+              rows={3}
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-slate-800 dark:text-slate-100 placeholder-slate-400 resize-y"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               ภาพ
             </label>
             <input
@@ -221,7 +258,7 @@ export default function AddAssetPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 disabled:opacity-50"
+            className="w-full py-3 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 disabled:opacity-50 transition-colors duration-200"
           >
             {loading ? "กำลังบันทึก..." : "เพิ่มสินทรัพย์"}
           </button>

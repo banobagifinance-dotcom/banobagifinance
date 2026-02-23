@@ -5,12 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
+import { useAuth } from "@/lib/auth-context";
 import type { Asset } from "@/lib/supabase";
 
 export default function AssetDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const { user, getAccessToken } = useAuth();
   const [asset, setAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,9 +39,11 @@ export default function AssetDetailPage() {
   const handleDelete = async () => {
     if (!asset || !confirm("ต้องการลบสินทรัพย์นี้ใช่หรือไม่?")) return;
     setDeleting(true);
+    const token = getAccessToken();
     try {
       const res = await fetch(`/api/assets/${encodeURIComponent(asset.asset_id)}`, {
         method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) {
         const data = await res.json();
@@ -158,6 +162,12 @@ export default function AssetDetailPage() {
               {Number(asset.price).toLocaleString("th-TH")} บาท
             </p>
           </div>
+          <div>
+            <span className="text-sm text-slate-500 dark:text-slate-400">รายละเอียดสินทรัพย์</span>
+            <p className="text-slate-800 dark:text-slate-100 whitespace-pre-wrap mt-1">
+              {asset.description?.trim() || "—"}
+            </p>
+          </div>
         </div>
 
         <div ref={qrContainerRef} className="px-6 pb-6 flex flex-col items-center gap-3">
@@ -168,28 +178,38 @@ export default function AssetDetailPage() {
           <button
             type="button"
             onClick={handleSaveAsJpg}
-            className="py-2 px-4 rounded-lg border-2 border-sky-600 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 font-medium"
+            className="py-2 px-4 rounded-lg border-2 border-sky-600 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 font-medium transition-colors duration-200"
           >
             Save QR + ID เป็น JPG
           </button>
         </div>
       </div>
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-6 flex flex-wrap gap-3">
+        {user && (
+          <Link
+            href={`/asset/${id}/edit`}
+            className="py-2 px-4 rounded-lg bg-sky-600 text-white hover:bg-sky-700 font-medium transition-colors duration-200"
+          >
+            แก้ไขสินทรัพย์
+          </Link>
+        )}
         <Link
           href="/"
-          className="flex-1 py-2 px-4 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-center"
+          className="py-2 px-4 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 text-center transition-colors duration-200"
         >
           กลับหน้าแรก
         </Link>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleting}
-          className="py-2 px-4 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-        >
-          {deleting ? "กำลังลบ..." : "ลบสินทรัพย์"}
-        </button>
+        {user && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="py-2 px-4 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors duration-200"
+          >
+            {deleting ? "กำลังลบ..." : "ลบสินทรัพย์"}
+          </button>
+        )}
       </div>
     </div>
   );

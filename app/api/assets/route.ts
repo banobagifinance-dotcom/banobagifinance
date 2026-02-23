@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabase, isValidAssetId, type Asset } from "@/lib/supabase";
+import { getAuthUserFromRequest } from "@/lib/auth-server";
 
 const BUCKET = "assets";
 
@@ -23,12 +24,17 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthUserFromRequest(request);
+    if (!user) {
+      return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
+    }
     const supabase = getSupabase();
     const formData = await request.formData();
     const asset_id = (formData.get("asset_id") as string)?.trim();
     const name = (formData.get("name") as string)?.trim();
     const date = (formData.get("date") as string)?.trim();
     const price = formData.get("price");
+    const description = (formData.get("description") as string)?.trim() || null;
     const image = formData.get("image") as File | null;
 
     if (!asset_id || !name || !date) {
@@ -75,6 +81,7 @@ export async function POST(request: NextRequest) {
         name,
         date,
         price: priceNum,
+        description,
         image_url,
       })
       .select()

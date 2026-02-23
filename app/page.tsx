@@ -99,7 +99,7 @@ export default function HomePage() {
               setPageSize(e.target.value as PageSizeOption);
               setPage(1);
             }}
-            className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 w-full sm:w-auto"
+            className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 w-full sm:w-auto transition-colors duration-200"
             aria-label="จำนวนที่แสดง"
           >
             <option value="15">15</option>
@@ -113,7 +113,7 @@ export default function HomePage() {
               setSort(e.target.value as SortOption);
               setPage(1);
             }}
-            className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 w-full sm:w-auto"
+            className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 w-full sm:w-auto transition-colors duration-200"
             aria-label="เรียงลำดับ"
           >
             <option value="az">A-Z</option>
@@ -128,7 +128,7 @@ export default function HomePage() {
               setPage(1);
             }}
             placeholder="ค้นจาก ID หรือ Name"
-            className="w-full sm:min-w-[200px] rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            className="w-full sm:min-w-[200px] rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-colors duration-200"
             aria-label="ค้นหาสินทรัพย์จาก ID หรือ Name"
           />
         </div>
@@ -136,7 +136,7 @@ export default function HomePage() {
       {assets.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-600 p-12 text-center text-slate-400">
           ยังไม่มีสินทรัพย์{" "}
-          <Link href="/add" className="text-sky-400 hover:underline">
+          <Link href="/add" className="text-sky-400 hover:text-sky-300 hover:underline transition-colors duration-200">
             เพิ่มสินทรัพย์
           </Link>
         </div>
@@ -151,7 +151,7 @@ export default function HomePage() {
               <li key={a.id}>
                 <Link
                   href={`/asset/${a.asset_id}`}
-                  className="block rounded-xl border border-slate-700 bg-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                  className="block rounded-xl border border-slate-700 bg-slate-800 overflow-hidden shadow-sm hover:shadow-lg hover:border-slate-600 hover:scale-[1.02] transition-all duration-200 ease-out"
                 >
                   <div className="aspect-square bg-slate-700 relative">
                     {a.image_url ? (
@@ -187,7 +187,7 @@ export default function HomePage() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
-                className="px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 ก่อนหน้า
               </button>
@@ -197,7 +197,7 @@ export default function HomePage() {
                     key={p}
                     type="button"
                     onClick={() => setPage(p)}
-                    className={`min-w-[2.5rem] py-2 rounded-lg border ${
+                    className={`min-w-[2.5rem] py-2 rounded-lg border transition-colors duration-200 ${
                       p === currentPage
                         ? "border-sky-500 bg-sky-600 text-white"
                         : "border-slate-600 text-slate-300 hover:bg-slate-700"
@@ -211,7 +211,7 @@ export default function HomePage() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
-                className="px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 ถัดไป
               </button>
