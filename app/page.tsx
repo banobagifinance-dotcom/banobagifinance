@@ -5,10 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Asset } from "@/lib/supabase";
 
+const ITEMS_PER_PAGE = 20;
+
 export default function HomePage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetch("/api/assets")
@@ -47,50 +51,137 @@ export default function HomePage() {
     );
   }
 
+  const filteredAssets = search.trim()
+    ? assets.filter(
+        (a) =>
+          a.asset_id.toLowerCase().includes(search.trim().toLowerCase()) ||
+          a.name.toLowerCase().includes(search.trim().toLowerCase())
+      )
+    : assets;
+
+  const totalPages = Math.max(1, Math.ceil(filteredAssets.length / ITEMS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedAssets = filteredAssets.slice(start, start + ITEMS_PER_PAGE);
+
+  const showPages = (() => {
+    const delta = 2;
+    const range: number[] = [];
+    const lo = Math.max(1, currentPage - delta);
+    const hi = Math.min(totalPages, currentPage + delta);
+    for (let i = lo; i <= hi; i++) range.push(i);
+    return range;
+  })();
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6">
-        สินทรัพย์ทั้งหมด
-      </h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h1 className="text-2xl font-bold text-slate-100">
+          สินทรัพย์ทั้งหมด
+        </h1>
+        <div className="w-full sm:w-auto sm:min-w-[220px]">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="ค้นจาก ID หรือ Name"
+            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            aria-label="ค้นหาสินทรัพย์จาก ID หรือ Name"
+          />
+        </div>
+      </div>
       {assets.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-600 p-12 text-center text-slate-500">
+        <div className="rounded-xl border border-dashed border-slate-600 p-12 text-center text-slate-400">
           ยังไม่มีสินทรัพย์{" "}
-          <Link href="/add" className="text-sky-600 dark:text-sky-400 hover:underline">
+          <Link href="/add" className="text-sky-400 hover:underline">
             เพิ่มสินทรัพย์
           </Link>
         </div>
+      ) : filteredAssets.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-600 p-12 text-center text-slate-400">
+          ไม่พบรายการที่ตรงกับคำค้น &quot;{search.trim()}&quot;
+        </div>
       ) : (
-        <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {assets.map((a) => (
-            <li key={a.id}>
-              <Link
-                href={`/asset/${a.asset_id}`}
-                className="block rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+        <>
+          <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {paginatedAssets.map((a) => (
+              <li key={a.id}>
+                <Link
+                  href={`/asset/${a.asset_id}`}
+                  className="block rounded-xl border border-slate-700 bg-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="aspect-square bg-slate-700 relative">
+                    {a.image_url ? (
+                      <Image
+                        src={a.image_url}
+                        alt={a.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, 20vw"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-slate-500 text-4xl">
+                        —
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3 text-center">
+                    <span className="font-mono font-semibold text-slate-100">
+                      {a.asset_id}
+                    </span>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          {totalPages > 1 && (
+            <nav
+              className="mt-8 flex flex-wrap items-center justify-center gap-2"
+              aria-label="เลื่อนหน้า"
+            >
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <div className="aspect-square bg-slate-100 dark:bg-slate-700 relative">
-                  {a.image_url ? (
-                    <Image
-                      src={a.image_url}
-                      alt={a.name}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 50vw, 20vw"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-4xl">
-                      —
-                    </div>
-                  )}
-                </div>
-                <div className="p-3 text-center">
-                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-100">
-                    {a.asset_id}
-                  </span>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+                ก่อนหน้า
+              </button>
+              <div className="flex items-center gap-1">
+                {showPages.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPage(p)}
+                    className={`min-w-[2.5rem] py-2 rounded-lg border ${
+                      p === currentPage
+                        ? "border-sky-500 bg-sky-600 text-white"
+                        : "border-slate-600 text-slate-300 hover:bg-slate-700"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ถัดไป
+              </button>
+              <span className="ml-2 text-sm text-slate-400">
+                หน้า {currentPage} / {totalPages}
+                {search.trim() ? ` (พบ ${filteredAssets.length} รายการ)` : ` (ทั้งหมด ${assets.length} รายการ)`}
+              </span>
+            </nav>
+          )}
+        </>
       )}
     </div>
   );
