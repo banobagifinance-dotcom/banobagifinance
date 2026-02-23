@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Asset } from "@/lib/supabase";
 
-const ITEMS_PER_PAGE = 20;
+type SortOption = "az" | "za" | "latest";
+type PageSizeOption = "15" | "50" | "100" | "all";
 
 export default function HomePage() {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -13,6 +14,8 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortOption>("az");
+  const [pageSize, setPageSize] = useState<PageSizeOption>("15");
 
   useEffect(() => {
     fetch("/api/assets")
@@ -59,10 +62,20 @@ export default function HomePage() {
       )
     : assets;
 
-  const totalPages = Math.max(1, Math.ceil(filteredAssets.length / ITEMS_PER_PAGE));
+  const sortedAssets = [...filteredAssets].sort((a, b) => {
+    if (sort === "latest") {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+    const cmp = a.asset_id.localeCompare(b.asset_id, "th");
+    return sort === "za" ? -cmp : cmp;
+  });
+
+  const itemsPerPage =
+    pageSize === "all" ? Math.max(1, sortedAssets.length) : Math.max(1, parseInt(pageSize, 10));
+  const totalPages = Math.max(1, Math.ceil(sortedAssets.length / itemsPerPage));
   const currentPage = Math.min(page, totalPages);
-  const start = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedAssets = filteredAssets.slice(start, start + ITEMS_PER_PAGE);
+  const start = (currentPage - 1) * itemsPerPage;
+  const paginatedAssets = sortedAssets.slice(start, start + itemsPerPage);
 
   const showPages = (() => {
     const delta = 2;
@@ -79,7 +92,34 @@ export default function HomePage() {
         <h1 className="text-2xl font-bold text-slate-100">
           สินทรัพย์ทั้งหมด
         </h1>
-        <div className="w-full sm:w-auto sm:min-w-[220px]">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center flex-wrap">
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(e.target.value as PageSizeOption);
+              setPage(1);
+            }}
+            className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 w-full sm:w-auto"
+            aria-label="จำนวนที่แสดง"
+          >
+            <option value="15">15</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="all">ทั้งหมด</option>
+          </select>
+          <select
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value as SortOption);
+              setPage(1);
+            }}
+            className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 w-full sm:w-auto"
+            aria-label="เรียงลำดับ"
+          >
+            <option value="az">A-Z</option>
+            <option value="za">Z-A</option>
+            <option value="latest">อัพเดตล่าสุด</option>
+          </select>
           <input
             type="search"
             value={search}
@@ -88,7 +128,7 @@ export default function HomePage() {
               setPage(1);
             }}
             placeholder="ค้นจาก ID หรือ Name"
-            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            className="w-full sm:min-w-[200px] rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             aria-label="ค้นหาสินทรัพย์จาก ID หรือ Name"
           />
         </div>
@@ -106,7 +146,7 @@ export default function HomePage() {
         </div>
       ) : (
         <>
-          <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
             {paginatedAssets.map((a) => (
               <li key={a.id}>
                 <Link
@@ -177,7 +217,7 @@ export default function HomePage() {
               </button>
               <span className="ml-2 text-sm text-slate-400">
                 หน้า {currentPage} / {totalPages}
-                {search.trim() ? ` (พบ ${filteredAssets.length} รายการ)` : ` (ทั้งหมด ${assets.length} รายการ)`}
+                {search.trim() ? ` (พบ ${sortedAssets.length} รายการ)` : ` (ทั้งหมด ${assets.length} รายการ)`}
               </span>
             </nav>
           )}
