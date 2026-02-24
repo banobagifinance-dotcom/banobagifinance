@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import HeaderNav from "./components/HeaderNav";
+import FabAddAsset from "./components/FabAddAsset";
+import FabHome from "./components/FabHome";
 
 export const metadata: Metadata = {
   title: "Thehagi Assets",
@@ -19,6 +21,8 @@ export default function RootLayout({
         <AuthProvider>
           <HeaderNav />
           <main className="max-w-6xl mx-auto px-4 py-6 animate-page-enter">{children}</main>
+          <FabAddAsset />
+          <FabHome />
         </AuthProvider>
       </body>
     </html>
