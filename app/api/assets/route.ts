@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabase, isValidAssetId, type Asset } from "@/lib/supabase";
+import { isValidAssetId } from "@/lib/supabase";
 import { getAuthUserFromRequest } from "@/lib/auth-server";
-
-const BUCKET = "assets";
+import { listAssets, createAsset, existsAssetId, ensureHeader } from "@/lib/sheets";
 
 export async function GET() {
   try {
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from("assets")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return NextResponse.json(data as Asset[]);
+    await ensureHeader();
+    const data = await listAssets();
+    return NextResponse.json(data);
   } catch (e) {
     console.error(e);
     return NextResponse.json(
@@ -28,14 +23,13 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
     }
-    const supabase = getSupabase();
     const formData = await request.formData();
     const asset_id = (formData.get("asset_id") as string)?.trim();
     const name = (formData.get("name") as string)?.trim();
     const date = (formData.get("date") as string)?.trim();
     const price = formData.get("price");
     const description = (formData.get("description") as string)?.trim() || null;
-    const image = formData.get("image") as File | null;
+    const image_url = (formData.get("image_url") as string)?.trim() || null;
 
     if (!asset_id || !name || !date) {
       return NextResponse.json(
@@ -55,45 +49,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "ราคาต้องเป็นตัวเลข" }, { status: 400 });
     }
 
-    let image_url: string | null = null;
-    if (image && image.size > 0) {
-      const ext = image.name.split(".").pop() || "jpg";
-      const path = `${asset_id}-${Date.now()}.${ext}`;
-      const buf = Buffer.from(await image.arrayBuffer());
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, buf, { contentType: image.type, upsert: true });
-      if (uploadError) {
-        console.error(uploadError);
-        return NextResponse.json(
-          { error: "อัปโหลดรูปไม่สำเร็จ: " + uploadError.message },
-          { status: 500 }
-        );
-      }
-      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      image_url = urlData.publicUrl;
+    if (await existsAssetId(asset_id)) {
+      return NextResponse.json({ error: "รหัส ID นี้มีอยู่แล้ว" }, { status: 400 });
     }
 
-    const { data, error } = await supabase
-      .from("assets")
-      .insert({
-        asset_id,
-        name,
-        date,
-        price: priceNum,
-        description,
-        image_url,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === "23505") {
-        return NextResponse.json({ error: "รหัส ID นี้มีอยู่แล้ว" }, { status: 400 });
-      }
-      throw error;
-    }
-    return NextResponse.json(data as Asset);
+    await ensureHeader();
+    const data = await createAsset({
+      asset_id,
+      name,
+      date,
+      price: priceNum,
+      description,
+      image_url,
+    });
+    return NextResponse.json(data);
   } catch (e) {
     console.error(e);
     return NextResponse.json(

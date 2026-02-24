@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import type { Asset } from "@/lib/supabase";
+import { toDirectImageUrl } from "@/lib/drive-image-url";
+import { getAssetIdPrefixLabel } from "@/lib/asset-id-labels";
 
 export default function EditAssetPage() {
   const params = useParams();
@@ -20,7 +22,7 @@ export default function EditAssetPage() {
     date: "",
     price: "",
     description: "",
-    image: null as File | null,
+    image_url: "",
   });
 
   useEffect(() => {
@@ -48,7 +50,7 @@ export default function EditAssetPage() {
             date: data.date.slice(0, 10),
             price: String(data.price ?? ""),
             description: data.description ?? "",
-            image: null,
+            image_url: data.image_url ?? "",
           });
         }
       })
@@ -66,7 +68,7 @@ export default function EditAssetPage() {
     fd.set("date", form.date);
     fd.set("price", form.price.trim() || "0");
     fd.set("description", form.description.trim());
-    if (form.image) fd.set("image", form.image);
+    if (form.image_url.trim()) fd.set("image_url", form.image_url.trim());
     const token = getAccessToken();
     try {
       const res = await fetch(`/api/assets/${encodeURIComponent(asset.asset_id)}`, {
@@ -110,7 +112,12 @@ export default function EditAssetPage() {
   return (
     <div className="max-w-lg mx-auto">
       <h1 className="text-2xl font-bold text-slate-100 mb-2">แก้ไขสินทรัพย์</h1>
-      <p className="font-mono text-slate-400 mb-6">{asset.asset_id}</p>
+      <p className="font-mono text-slate-400 mb-1">{asset.asset_id.toUpperCase()}</p>
+      {getAssetIdPrefixLabel(asset.asset_id.split("-")[0] ?? "") ? (
+        <p className="text-sm text-slate-500 mb-6">{getAssetIdPrefixLabel(asset.asset_id.split("-")[0] ?? "")}</p>
+      ) : (
+        <div className="mb-6" />
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
@@ -123,10 +130,13 @@ export default function EditAssetPage() {
           <label className="block text-sm font-medium text-slate-300 mb-1">ID</label>
           <input
             type="text"
-            value={asset.asset_id}
+            value={asset.asset_id.toUpperCase()}
             disabled
             className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-400 font-mono cursor-not-allowed"
           />
+          {getAssetIdPrefixLabel(asset.asset_id.split("-")[0] ?? "") ? (
+            <p className="text-xs text-slate-400 mt-1">{getAssetIdPrefixLabel(asset.asset_id.split("-")[0] ?? "")}</p>
+          ) : null}
           <p className="text-xs text-slate-500 mt-1">ไม่สามารถแก้ไข ID ได้</p>
         </div>
 
@@ -180,16 +190,28 @@ export default function EditAssetPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">ภาพ</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1">ลิงค์รูปภาพ</label>
           <input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              setForm((f) => ({ ...f, image: e.target.files?.[0] ?? null }))
-            }
-            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-sky-900/50 file:text-sky-300"
+            type="url"
+            value={form.image_url}
+            onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
+            placeholder="https://... (เช่น ลิงค์จาก Google Drive / Google Photos)"
+            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder-slate-500"
           />
-          <p className="text-xs text-slate-500 mt-1">เว้นว่างไว้ถ้าไม่ต้องการเปลี่ยนรูป</p>
+          {form.image_url.trim() ? (
+            <div className="mt-2 rounded-lg border border-slate-600 overflow-hidden bg-slate-800 inline-block max-w-[200px]">
+              <img
+                src={toDirectImageUrl(form.image_url.trim()) ?? form.image_url.trim()}
+                alt="พรีวิว"
+                referrerPolicy="no-referrer"
+                className="max-h-40 w-auto object-contain block"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            </div>
+          ) : null}
+          <p className="text-xs text-slate-500 mt-1">เว้นว่างไว้ถ้าไม่ต้องการใส่รูป</p>
         </div>
 
         <div className="flex gap-3 pt-2">

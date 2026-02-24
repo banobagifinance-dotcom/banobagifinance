@@ -7,6 +7,9 @@ import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
 import { useAuth } from "@/lib/auth-context";
 import type { Asset } from "@/lib/supabase";
+import { toDirectImageUrl, isDriveUrl } from "@/lib/drive-image-url";
+import { getAssetIdPrefixLabel } from "@/lib/asset-id-labels";
+import { formatSheetDate } from "@/lib/date-utils";
 
 export default function AssetDetailPage() {
   const params = useParams();
@@ -85,12 +88,12 @@ export default function AssetDetailPage() {
     ctx.fillStyle = "#1e293b";
     ctx.font = "bold 24px system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(asset.asset_id, width / 2, padding + 28);
+    ctx.fillText(asset.asset_id.toUpperCase(), width / 2, padding + 28);
 
     ctx.drawImage(qrCanvas, padding, padding + idHeight + 16, qrSize, qrSize);
 
     const link = document.createElement("a");
-    link.download = `${asset.asset_id}-qr.jpg`;
+    link.download = `${asset.asset_id.toUpperCase()}-qr.jpg`;
     link.href = canvas.toDataURL("image/jpeg", 0.92);
     link.click();
   };
@@ -114,74 +117,84 @@ export default function AssetDetailPage() {
     );
   }
 
-  const dateDisplay = asset.date
-    ? new Date(asset.date + "Z").toLocaleDateString("th-TH", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    : "-";
+  const dateDisplay = formatSheetDate(asset.date);
 
   return (
     <div className="max-w-xl mx-auto">
       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-sm">
         <div className="aspect-video bg-slate-100 dark:bg-slate-700 relative">
           {asset.image_url ? (
-            <Image
-              src={asset.image_url}
-              alt={asset.name}
-              fill
-              className="object-contain"
-              sizes="(max-width: 640px) 100vw, 32rem"
-              priority
-            />
+            isDriveUrl(asset.image_url) ? (
+              <img
+                src={toDirectImageUrl(asset.image_url) ?? asset.image_url}
+                alt={asset.name}
+                referrerPolicy="no-referrer"
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <Image
+                src={toDirectImageUrl(asset.image_url) ?? asset.image_url}
+                alt={asset.name}
+                fill
+                className="object-contain"
+                sizes="(max-width: 640px) 100vw, 32rem"
+                priority
+              />
+            )
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-6xl">
               —
             </div>
           )}
         </div>
-        <div className="p-6 space-y-4">
-          <div>
-            <span className="text-sm text-slate-500 dark:text-slate-400">ID</span>
-            <p className="font-mono text-xl font-semibold text-slate-800 dark:text-slate-100">
-              {asset.asset_id}
-            </p>
+        <div className="p-6 flex flex-col md:flex-row gap-6 md:gap-8">
+          <div className="flex-1 min-w-0 space-y-4">
+            <div>
+              <span className="text-sm text-slate-500 dark:text-slate-400">ID</span>
+              <p className="font-mono text-xl font-semibold text-slate-800 dark:text-slate-100">
+                {asset.asset_id.toUpperCase()}
+              </p>
+              {getAssetIdPrefixLabel(asset.asset_id.split("-")[0] ?? "") ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  {getAssetIdPrefixLabel(asset.asset_id.split("-")[0] ?? "")}
+                </p>
+              ) : null}
+            </div>
+            <div>
+              <span className="text-sm text-slate-500 dark:text-slate-400">Name</span>
+              <p className="text-slate-800 dark:text-slate-100">{asset.name}</p>
+            </div>
+            <div>
+              <span className="text-sm text-slate-500 dark:text-slate-400">Date</span>
+              <p className="text-slate-800 dark:text-slate-100">{dateDisplay}</p>
+            </div>
+            <div>
+              <span className="text-sm text-slate-500 dark:text-slate-400">Price</span>
+              <p className="text-slate-800 dark:text-slate-100">
+                {Number(asset.price).toLocaleString("th-TH")} บาท
+              </p>
+            </div>
+            <div>
+              <span className="text-sm text-slate-500 dark:text-slate-400">รายละเอียดสินทรัพย์</span>
+              <p className="text-slate-800 dark:text-slate-100 whitespace-pre-wrap mt-1">
+                {asset.description?.trim() || "—"}
+              </p>
+            </div>
           </div>
-          <div>
-            <span className="text-sm text-slate-500 dark:text-slate-400">Name</span>
-            <p className="text-slate-800 dark:text-slate-100">{asset.name}</p>
-          </div>
-          <div>
-            <span className="text-sm text-slate-500 dark:text-slate-400">Date</span>
-            <p className="text-slate-800 dark:text-slate-100">{dateDisplay}</p>
-          </div>
-          <div>
-            <span className="text-sm text-slate-500 dark:text-slate-400">Price</span>
-            <p className="text-slate-800 dark:text-slate-100">
-              {Number(asset.price).toLocaleString("th-TH")} บาท
-            </p>
-          </div>
-          <div>
-            <span className="text-sm text-slate-500 dark:text-slate-400">รายละเอียดสินทรัพย์</span>
-            <p className="text-slate-800 dark:text-slate-100 whitespace-pre-wrap mt-1">
-              {asset.description?.trim() || "—"}
-            </p>
-          </div>
-        </div>
 
-        <div ref={qrContainerRef} className="px-6 pb-6 flex flex-col items-center gap-3">
-          <p className="text-sm text-slate-500 dark:text-slate-400">QR Code สำหรับสินทรัพย์นี้</p>
-          <div className="bg-white p-4 rounded-lg border border-slate-200 inline-block">
-            <QRCodeCanvas value={qrUrl} size={180} level="M" />
+          <div ref={qrContainerRef} className="flex flex-col items-center justify-start shrink-0 gap-3 md:pt-0">
+            <p className="text-sm text-slate-500 dark:text-slate-400">QR Code สำหรับสินทรัพย์นี้</p>
+            <div className="bg-white p-4 rounded-lg border border-slate-200 dark:border-slate-600 inline-block">
+              <QRCodeCanvas value={qrUrl} size={180} level="M" />
+            </div>
+            <button
+              type="button"
+              onClick={handleSaveAsJpg}
+              className="py-2 px-4 rounded-lg border-2 border-sky-600 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 font-medium transition-colors duration-200"
+            >
+              Save QR + ID เป็น JPG
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleSaveAsJpg}
-            className="py-2 px-4 rounded-lg border-2 border-sky-600 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 font-medium transition-colors duration-200"
-          >
-            Save QR + ID เป็น JPG
-          </button>
         </div>
       </div>
 

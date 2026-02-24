@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 import { useAuth } from "@/lib/auth-context";
 import type { Asset } from "@/lib/supabase";
+import { toDirectImageUrl } from "@/lib/drive-image-url";
+import { ID_PREFIX_LABELS } from "@/lib/asset-id-labels";
 
 export default function AddAssetPage() {
   const router = useRouter();
@@ -13,12 +15,14 @@ export default function AddAssetPage() {
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Asset | null>(null);
   const [form, setForm] = useState({
-    asset_id: "",
+    id_prefix: "", // ตัวอักษร 2 ตัว เช่น EQ, AQ
+    id_mid: "",    // ตัวเลข 2 หลัก เช่น 25, 01
+    id_suffix: "", // ตัวเลข 3 หลัก เช่น 034, 001
     name: "",
     date: new Date().toISOString().slice(0, 10),
     price: "",
     description: "",
-    image: null as File | null,
+    image_url: "",
   });
 
   useEffect(() => {
@@ -31,13 +35,14 @@ export default function AddAssetPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    const asset_id = `${form.id_prefix.trim().toUpperCase()}-${form.id_mid.replace(/\D/g, "").padStart(2, "0")}-${form.id_suffix.replace(/\D/g, "").padStart(3, "0")}`;
     const fd = new FormData();
-    fd.set("asset_id", form.asset_id.trim());
+    fd.set("asset_id", asset_id);
     fd.set("name", form.name.trim());
     fd.set("date", form.date);
     fd.set("price", form.price.trim() || "0");
     if (form.description.trim()) fd.set("description", form.description.trim());
-    if (form.image) fd.set("image", form.image);
+    if (form.image_url.trim()) fd.set("image_url", form.image_url.trim());
     const token = getAccessToken();
     try {
       const res = await fetch("/api/assets", {
@@ -88,12 +93,12 @@ export default function AddAssetPage() {
     ctx.fillStyle = "#1e293b";
     ctx.font = "bold 24px system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(created.asset_id, width / 2, padding + 28);
+    ctx.fillText(created.asset_id.toUpperCase(), width / 2, padding + 28);
 
     ctx.drawImage(qrCanvas, padding, padding + idHeight + 16, qrSize, qrSize);
 
     const link = document.createElement("a");
-    link.download = `${created.asset_id}-qr.jpg`;
+    link.download = `${created.asset_id.toUpperCase()}-qr.jpg`;
     link.href = canvas.toDataURL("image/jpeg", 0.92);
     link.click();
   };
@@ -119,7 +124,7 @@ export default function AddAssetPage() {
           </p>
           <div ref={qrContainerRef} className="flex flex-col items-center gap-4">
             <p className="font-mono font-semibold text-slate-800 dark:text-slate-100">
-              {created.asset_id}
+              {created.asset_id.toUpperCase()}
             </p>
             <div className="bg-white p-4 rounded-lg border border-slate-200">
               <QRCodeCanvas value={qrUrl} size={200} level="M" />
@@ -142,12 +147,14 @@ export default function AddAssetPage() {
               onClick={() => {
                 setCreated(null);
                 setForm({
-                  asset_id: "",
+                  id_prefix: "",
+                  id_mid: "",
+                  id_suffix: "",
                   name: "",
                   date: new Date().toISOString().slice(0, 10),
                   price: "",
                   description: "",
-                  image: null,
+                  image_url: "",
                 });
               }}
               className="flex-1 py-2 px-4 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-200"
@@ -174,16 +181,70 @@ export default function AddAssetPage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              ID <span className="text-slate-500">(รูปแบบ XX-25-034 เช่น EQ, AQ, CQ)</span>
+              ID <span className="text-slate-500">(ตัวอักษร 2 ตัว - ตัวเลข 2 หลัก - ตัวเลข 3 หลัก)</span>
             </label>
-            <input
-              type="text"
-              required
-              value={form.asset_id}
-              onChange={(e) => setForm((f) => ({ ...f, asset_id: e.target.value }))}
-              placeholder="EQ-25-034 หรือ AQ-01-001"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 font-mono text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-colors duration-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none"
-            />
+            <p className="text-xs text-slate-500 mb-2">
+              EQ = อุปกรณ์สำนักงาน · FU = เครื่องตกแต่งสำนักงาน · KM = เครื่องมือเครื่องใช้
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                required
+                maxLength={2}
+                value={form.id_prefix}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    id_prefix: e.target.value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 2),
+                  }))
+                }
+                placeholder="EQ"
+                className="w-20 text-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 font-mono text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none"
+                title="ตัวอักษร 2 ตัว"
+              />
+              <span className="text-slate-500 font-mono">-</span>
+              <input
+                type="text"
+                required
+                maxLength={2}
+                value={form.id_mid}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    id_mid: e.target.value.replace(/\D/g, "").slice(0, 2),
+                  }))
+                }
+                placeholder="25"
+                className="w-16 text-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 font-mono text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none"
+                title="ตัวเลข 2 หลัก"
+              />
+              <span className="text-slate-500 font-mono">-</span>
+              <input
+                type="text"
+                required
+                maxLength={3}
+                value={form.id_suffix}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    id_suffix: e.target.value.replace(/\D/g, "").slice(0, 3),
+                  }))
+                }
+                placeholder="034"
+                className="w-20 text-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 font-mono text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none"
+                title="ตัวเลข 3 หลัก"
+              />
+            </div>
+            {form.id_prefix || form.id_mid || form.id_suffix ? (
+              <p className="mt-1 text-sm font-mono text-slate-500">
+                รหัส: {form.id_prefix || "?"}-{form.id_mid.padStart(2, "0") || "00"}-{form.id_suffix.padStart(3, "0") || "000"}
+                {ID_PREFIX_LABELS[form.id_prefix.toUpperCase()] ? (
+                  <span className="ml-2 text-slate-600 dark:text-slate-400 font-sans normal-case">
+                    — {ID_PREFIX_LABELS[form.id_prefix.toUpperCase()]}
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
           </div>
 
           <div>
@@ -243,16 +304,28 @@ export default function AddAssetPage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              ภาพ
+              ลิงค์รูปภาพ
             </label>
             <input
-              type="file"
-              accept="image/*"
-              onChange={(e) =>
-                setForm((f) => ({ ...f, image: e.target.files?.[0] ?? null }))
-              }
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-slate-800 dark:text-slate-100 text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-sky-50 file:text-sky-700 dark:file:bg-sky-900/30 dark:file:text-sky-300"
+              type="url"
+              value={form.image_url}
+              onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
+              placeholder="https://... (เช่น ลิงค์จาก Google Drive / Google Photos)"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-slate-800 dark:text-slate-100 placeholder-slate-400"
             />
+            {form.image_url.trim() ? (
+              <div className="mt-2 rounded-lg border border-slate-300 dark:border-slate-600 overflow-hidden bg-slate-100 dark:bg-slate-800 inline-block max-w-[200px]">
+                <img
+                  src={toDirectImageUrl(form.image_url.trim()) ?? form.image_url.trim()}
+                  alt="พรีวิว"
+                  referrerPolicy="no-referrer"
+                  className="max-h-40 w-auto object-contain block"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              </div>
+            ) : null}
           </div>
 
           <button

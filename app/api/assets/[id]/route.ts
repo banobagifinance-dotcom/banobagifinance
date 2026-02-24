@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabase, type Asset } from "@/lib/supabase";
 import { getAuthUserFromRequest } from "@/lib/auth-server";
-
-const BUCKET = "assets";
-
-function getStoragePathFromUrl(url: string): string | null {
-  try {
-    const pathname = new URL(url).pathname;
-    return pathname.split(`/${BUCKET}/`)[1]?.split("?")[0] ?? null;
-  } catch {
-    return null;
-  }
-}
+import {
+  getAssetByAssetId,
+  deleteAssetByAssetId,
+  updateAsset,
+  ensureHeader,
+} from "@/lib/sheets";
 
 export async function GET(
   _request: NextRequest,
@@ -19,19 +13,12 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from("assets")
-      .select("*")
-      .eq("asset_id", id)
-      .single();
-    if (error) {
-      if (error.code === "PGRST116") {
-        return NextResponse.json({ error: "ไม่พบสินทรัพย์" }, { status: 404 });
-      }
-      throw error;
+    await ensureHeader();
+    const data = await getAssetByAssetId(id);
+    if (!data) {
+      return NextResponse.json({ error: "ไม่พบสินทรัพย์" }, { status: 404 });
     }
-    return NextResponse.json(data as Asset);
+    return NextResponse.json(data);
   } catch (e) {
     console.error(e);
     return NextResponse.json(
@@ -51,29 +38,15 @@ export async function DELETE(
       return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
     }
     const { id } = await params;
-    const supabase = getSupabase();
-
-    const { data: asset, error: fetchError } = await supabase
-      .from("assets")
-      .select("id, image_url")
-      .eq("asset_id", id)
-      .single();
-
-    if (fetchError || !asset) {
+    const asset = await getAssetByAssetId(id);
+    if (!asset) {
       return NextResponse.json({ error: "ไม่พบสินทรัพย์" }, { status: 404 });
     }
 
-    if (asset.image_url) {
-      const path = getStoragePathFromUrl(asset.image_url);
-      if (path) await supabase.storage.from(BUCKET).remove([path]);
+    const deleted = await deleteAssetByAssetId(asset.asset_id);
+    if (!deleted) {
+      return NextResponse.json({ error: "ไม่พบสินทรัพย์" }, { status: 404 });
     }
-
-    const { error: deleteError } = await supabase
-      .from("assets")
-      .delete()
-      .eq("id", asset.id);
-
-    if (deleteError) throw deleteError;
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error(e);
@@ -94,15 +67,8 @@ export async function PATCH(
       return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
     }
     const { id: asset_id } = await params;
-    const supabase = getSupabase();
-
-    const { data: existing, error: fetchError } = await supabase
-      .from("assets")
-      .select("id, image_url")
-      .eq("asset_id", asset_id)
-      .single();
-
-    if (fetchError || !existing) {
+    const existing = await getAssetByAssetId(asset_id);
+    if (!existing) {
       return NextResponse.json({ error: "ไม่พบสินทรัพย์" }, { status: 404 });
     }
 
@@ -111,7 +77,7 @@ export async function PATCH(
     const date = (formData.get("date") as string)?.trim();
     const price = formData.get("price");
     const description = (formData.get("description") as string)?.trim() || null;
-    const image = formData.get("image") as File | null;
+    const image_url = (formData.get("image_url") as string)?.trim() || null;
 
     if (!name || !date) {
       return NextResponse.json(
@@ -125,44 +91,18 @@ export async function PATCH(
       return NextResponse.json({ error: "ราคาต้องเป็นตัวเลข" }, { status: 400 });
     }
 
-    let image_url: string | null = existing.image_url;
-
-    if (image && image.size > 0) {
-      const ext = image.name.split(".").pop() || "jpg";
-      const path = `${asset_id}-${Date.now()}.${ext}`;
-      const buf = Buffer.from(await image.arrayBuffer());
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, buf, { contentType: image.type, upsert: true });
-      if (uploadError) {
-        return NextResponse.json(
-          { error: "อัปโหลดรูปไม่สำเร็จ: " + uploadError.message },
-          { status: 500 }
-        );
-      }
-      if (existing.image_url) {
-        const oldPath = getStoragePathFromUrl(existing.image_url);
-        if (oldPath) await supabase.storage.from(BUCKET).remove([oldPath]);
-      }
-      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      image_url = urlData.publicUrl;
+    await ensureHeader();
+    const data = await updateAsset(asset_id, {
+      name,
+      date,
+      price: priceNum,
+      description,
+      image_url: image_url || null,
+    });
+    if (!data) {
+      return NextResponse.json({ error: "ไม่พบสินทรัพย์" }, { status: 404 });
     }
-
-    const { data, error } = await supabase
-      .from("assets")
-      .update({
-        name,
-        date,
-        price: priceNum,
-        description,
-        image_url,
-      })
-      .eq("id", existing.id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return NextResponse.json(data as Asset);
+    return NextResponse.json(data);
   } catch (e) {
     console.error(e);
     return NextResponse.json(
