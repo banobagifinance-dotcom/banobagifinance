@@ -61,6 +61,8 @@ export async function POST(request: NextRequest) {
       price: priceNum,
       description,
       image_url,
+      status: "Active",
+      sold_date: null,
     });
     return NextResponse.json(data);
   } catch (e) {

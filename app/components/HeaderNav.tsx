@@ -11,8 +11,8 @@ export default function HeaderNav() {
 
   return (
     <header className="border-b border-slate-700 bg-slate-900/90 backdrop-blur sticky top-0 z-10">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-semibold text-lg text-slate-100 hover:text-sky-300 transition-colors duration-200">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <Link href="/" className="flex items-center gap-2 font-semibold text-lg text-slate-100 hover:text-sky-300 transition-colors duration-200 shrink-0">
           <Image
             src="/logo.jpg"
             alt="Thehagi Assets"
@@ -22,7 +22,7 @@ export default function HeaderNav() {
           />
           Thehagi Assets
         </Link>
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-4 w-full sm:w-auto">
           <Link
             href="/"
             className="text-slate-300 hover:text-white transition-colors duration-200"

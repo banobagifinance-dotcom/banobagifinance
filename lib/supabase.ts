@@ -19,6 +19,8 @@ export type Asset = {
   description: string | null;
   image_url: string | null;
   created_at: string;
+  status: string;
+  sold_date: string | null;
 };
 
 // ตัวอักษร 2 ตัว (EQ, AQ, CQ ฯลฯ) + - + ตัวเลข 2 หลัก + - + ตัวเลข 3 หลัก

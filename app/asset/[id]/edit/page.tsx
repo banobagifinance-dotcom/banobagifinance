@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import type { Asset } from "@/lib/supabase";
 import { toDirectImageUrl } from "@/lib/drive-image-url";
 import { getAssetIdPrefixLabel } from "@/lib/asset-id-labels";
+import { formatSheetDate, parseSheetDateParts, toSheetDateString, THAI_MONTHS } from "@/lib/date-utils";
 
 export default function EditAssetPage() {
   const params = useParams();
@@ -23,6 +24,8 @@ export default function EditAssetPage() {
     price: "",
     description: "",
     image_url: "",
+    status: "Active" as "Active" | "Sold",
+    sold_date: "",
   });
 
   useEffect(() => {
@@ -51,6 +54,9 @@ export default function EditAssetPage() {
             price: String(data.price ?? ""),
             description: data.description ?? "",
             image_url: data.image_url ?? "",
+            status: (data.status === "Sold" ? "Sold" : "Active") as "Active" | "Sold",
+            sold_date: data.sold_date?.trim()?.slice(0, 10)
+              ?? (data.status === "Sold" ? "2568-01-01" : ""),
           });
         }
       })
@@ -69,6 +75,8 @@ export default function EditAssetPage() {
     fd.set("price", form.price.trim() || "0");
     fd.set("description", form.description.trim());
     if (form.image_url.trim()) fd.set("image_url", form.image_url.trim());
+    fd.set("status", form.status);
+    if (form.status === "Sold" && form.sold_date.trim()) fd.set("sold_date", form.sold_date.trim());
     const token = getAccessToken();
     try {
       const res = await fetch(`/api/assets/${encodeURIComponent(asset.asset_id)}`, {
@@ -174,6 +182,102 @@ export default function EditAssetPage() {
             placeholder="0"
             className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 placeholder-slate-500"
           />
+        </div>
+
+        <div>
+          <span className="block text-sm font-medium text-slate-300 mb-2">สถานะ</span>
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="status"
+                value="Active"
+                checked={form.status === "Active"}
+                onChange={() => setForm((f) => ({ ...f, status: "Active", sold_date: "" }))}
+                className="rounded-full border-slate-500 text-sky-500 focus:ring-sky-500"
+              />
+              <span className="text-slate-200">Active</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="status"
+                value="Sold"
+                checked={form.status === "Sold"}
+                onChange={() => setForm((f) => ({ ...f, status: "Sold", sold_date: f.sold_date || "2568-01-01" }))}
+                className="rounded-full border-slate-500 text-sky-500 focus:ring-sky-500"
+              />
+              <span className="text-slate-200">Sold</span>
+            </label>
+          </div>
+          {form.status === "Sold" && (
+            <div className="mt-3">
+              <label className="block text-sm font-medium text-slate-400 mb-1">วันที่ขาย (วัน เดือน ปี พ.ศ.)</label>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-slate-500">วัน</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={31}
+                    required={form.status === "Sold"}
+                    value={(() => {
+                      const p = parseSheetDateParts(form.sold_date);
+                      return p ? p.day : 1;
+                    })()}
+                    onChange={(e) => {
+                      const p = parseSheetDateParts(form.sold_date) ?? { day: 1, month: 1, year: 2568 };
+                      const day = Math.max(1, Math.min(31, parseInt(e.target.value, 10) || 1));
+                      setForm((f) => ({ ...f, sold_date: toSheetDateString(day, p.month, p.year) }));
+                    }}
+                    className="w-14 rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-slate-100 text-center"
+                  />
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-slate-500">เดือน</span>
+                  <select
+                    required={form.status === "Sold"}
+                    value={(() => {
+                      const p = parseSheetDateParts(form.sold_date);
+                      return p ? p.month : 1;
+                    })()}
+                    onChange={(e) => {
+                      const p = parseSheetDateParts(form.sold_date) ?? { day: 1, month: 1, year: 2568 };
+                      const month = parseInt(e.target.value, 10) || 1;
+                      setForm((f) => ({ ...f, sold_date: toSheetDateString(p.day, month, p.year) }));
+                    }}
+                    className="rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-slate-100 min-w-[120px]"
+                  >
+                    {THAI_MONTHS.map((name, i) => (
+                      <option key={i} value={i + 1}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-slate-500">ปี (พ.ศ.)</span>
+                  <input
+                    type="number"
+                    min={2400}
+                    max={2600}
+                    required={form.status === "Sold"}
+                    value={(() => {
+                      const p = parseSheetDateParts(form.sold_date);
+                      return p ? p.year : 2568;
+                    })()}
+                    onChange={(e) => {
+                      const p = parseSheetDateParts(form.sold_date) ?? { day: 1, month: 1, year: 2568 };
+                      const year = parseInt(e.target.value, 10) || 2568;
+                      setForm((f) => ({ ...f, sold_date: toSheetDateString(p.day, p.month, year) }));
+                    }}
+                    className="w-20 rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-slate-100 text-center"
+                  />
+                </div>
+              </div>
+              {form.sold_date ? (
+                <p className="text-sm text-slate-400 mt-1">{formatSheetDate(form.sold_date)}</p>
+              ) : null}
+            </div>
+          )}
         </div>
 
         <div>

@@ -3,7 +3,7 @@ import { google } from "googleapis";
 import type { Asset } from "./supabase";
 
 const SHEET_NAME = "Assets";
-const HEADERS = ["asset_id", "name", "date", "price", "description", "image_url", "created_at"];
+const HEADERS = ["asset_id", "name", "date", "price", "description", "image_url", "created_at", "status", "sold_date"];
 
 function getSheetsClient() {
   const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
@@ -39,6 +39,8 @@ function parsePrice(value: unknown): number {
 
 function rowToAsset(row: unknown[], _rowIndex: number): Asset {
   const asset_id = String(row[0] ?? "");
+  const statusVal = row[7] != null && String(row[7]).trim() !== "" ? String(row[7]).trim() : "Active";
+  const soldDateVal = row[8] != null && String(row[8]).trim() !== "" ? String(row[8]).trim() : null;
   return {
     id: asset_id,
     asset_id,
@@ -48,6 +50,8 @@ function rowToAsset(row: unknown[], _rowIndex: number): Asset {
     description: row[4] != null && row[4] !== "" ? String(row[4]) : null,
     image_url: row[5] != null && row[5] !== "" ? String(row[5]) : null,
     created_at: String(row[6] ?? ""),
+    status: statusVal,
+    sold_date: soldDateVal,
   };
 }
 
@@ -61,6 +65,8 @@ function assetToRow(a: Omit<Asset, "id" | "created_at"> & { created_at?: string 
     a.description ?? "",
     a.image_url ?? "",
     created_at,
+    a.status ?? "Active",
+    a.sold_date ?? "",
   ];
 }
 
@@ -69,7 +75,7 @@ export async function listAssets(): Promise<Asset[]> {
   const { sheets, spreadsheetId } = getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${SHEET_NAME}!A2:G`,
+    range: `${SHEET_NAME}!A2:I`,
   });
   const rows = (res.data.values ?? []) as unknown[][];
   const assets = rows.map((row, i) => rowToAsset(row, i + 2));
@@ -82,7 +88,7 @@ export async function getAssetByAssetId(asset_id: string): Promise<Asset | null>
   const { sheets, spreadsheetId } = getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${SHEET_NAME}!A2:G`,
+    range: `${SHEET_NAME}!A2:I`,
   });
   const rows = (res.data.values ?? []) as unknown[][];
   for (let i = 0; i < rows.length; i++) {
@@ -98,7 +104,7 @@ async function findRowIndexByAssetId(asset_id: string): Promise<{ rowIndex: numb
   const { sheets, spreadsheetId } = getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${SHEET_NAME}!A2:G`,
+    range: `${SHEET_NAME}!A2:I`,
   });
   const rows = (res.data.values ?? []) as unknown[][];
   for (let i = 0; i < rows.length; i++) {
@@ -123,7 +129,7 @@ export async function createAsset(
   const row = assetToRow(data);
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: `${SHEET_NAME}!A:G`,
+    range: `${SHEET_NAME}!A:I`,
     valueInputOption: "USER_ENTERED",
     requestBody: { values: [row] },
   });
@@ -149,7 +155,7 @@ export async function updateAsset(
   const row = assetToRow({ ...updated, created_at: updated.created_at });
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `${SHEET_NAME}!A${rowIndex}:G${rowIndex}`,
+    range: `${SHEET_NAME}!A${rowIndex}:I${rowIndex}`,
     valueInputOption: "USER_ENTERED",
     requestBody: { values: [row] },
   });
@@ -199,13 +205,13 @@ export async function ensureHeader(): Promise<void> {
   const { sheets, spreadsheetId } = getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${SHEET_NAME}!A1:G1`,
+    range: `${SHEET_NAME}!A1:I1`,
   });
   const existing = (res.data.values ?? []) as unknown[][];
   if (existing.length === 0 || !existing[0]?.length) {
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `${SHEET_NAME}!A1:G1`,
+      range: `${SHEET_NAME}!A1:I1`,
       valueInputOption: "USER_ENTERED",
       requestBody: { values: [HEADERS] },
     });

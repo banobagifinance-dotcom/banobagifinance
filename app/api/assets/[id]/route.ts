@@ -78,6 +78,8 @@ export async function PATCH(
     const price = formData.get("price");
     const description = (formData.get("description") as string)?.trim() || null;
     const image_url = (formData.get("image_url") as string)?.trim() || null;
+    const status = ((formData.get("status") as string)?.trim() || "Active") as "Active" | "Sold";
+    const sold_date = (formData.get("sold_date") as string)?.trim() || null;
 
     if (!name || !date) {
       return NextResponse.json(
@@ -90,6 +92,9 @@ export async function PATCH(
     if (Number.isNaN(priceNum)) {
       return NextResponse.json({ error: "ราคาต้องเป็นตัวเลข" }, { status: 400 });
     }
+    if (status === "Sold" && !sold_date) {
+      return NextResponse.json({ error: "กรุณาใส่วันที่ขายเมื่อสถานะเป็น Sold" }, { status: 400 });
+    }
 
     await ensureHeader();
     const data = await updateAsset(asset_id, {
@@ -98,6 +103,8 @@ export async function PATCH(
       price: priceNum,
       description,
       image_url: image_url || null,
+      status,
+      sold_date: status === "Sold" ? sold_date : null,
     });
     if (!data) {
       return NextResponse.json({ error: "ไม่พบสินทรัพย์" }, { status: 404 });

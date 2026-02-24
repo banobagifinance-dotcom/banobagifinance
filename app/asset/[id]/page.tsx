@@ -175,6 +175,21 @@ export default function AssetDetailPage() {
               </p>
             </div>
             <div>
+              <span className="text-sm text-slate-500 dark:text-slate-400">สถานะ</span>
+              <p className="text-slate-800 dark:text-slate-100">
+                {asset.status === "Sold" ? (
+                  <span className="text-amber-600 dark:text-amber-400 font-medium">Sold</span>
+                ) : (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">Active</span>
+                )}
+              </p>
+              {asset.status === "Sold" && asset.sold_date && (
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  วันที่ขาย: {formatSheetDate(asset.sold_date)}
+                </p>
+              )}
+            </div>
+            <div>
               <span className="text-sm text-slate-500 dark:text-slate-400">รายละเอียดสินทรัพย์</span>
               <p className="text-slate-800 dark:text-slate-100 whitespace-pre-wrap mt-1">
                 {asset.description?.trim() || "—"}

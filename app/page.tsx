@@ -10,6 +10,7 @@ import { ID_PREFIX_LABELS } from "@/lib/asset-id-labels";
 type SortOption = "az" | "za" | "latest" | "price_desc" | "price_asc";
 type PageSizeOption = "15" | "50" | "100" | "all";
 type CategoryFilterOption = "" | "EQ" | "FU" | "KM";
+type StatusFilterOption = "" | "Active" | "Sold";
 
 export default function HomePage() {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -20,6 +21,7 @@ export default function HomePage() {
   const [sort, setSort] = useState<SortOption>("az");
   const [pageSize, setPageSize] = useState<PageSizeOption>("15");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilterOption>("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilterOption>("");
 
   useEffect(() => {
     fetch("/api/assets")
@@ -60,6 +62,10 @@ export default function HomePage() {
 
   const filteredAssets = assets
     .filter((a) => {
+      if (statusFilter) {
+        const s = (a.status ?? "Active").trim() || "Active";
+        if (s !== statusFilter) return false;
+      }
       if (categoryFilter) {
         const prefix = a.asset_id.toUpperCase().split("-")[0] ?? "";
         if (prefix !== categoryFilter) return false;
@@ -112,24 +118,37 @@ export default function HomePage() {
             สินทรัพย์ทั้งหมด
           </h1>
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center flex-wrap">
-            <select
-              value={categoryFilter}
-              onChange={(e) => {
-                setCategoryFilter(e.target.value as CategoryFilterOption);
-                setPage(1);
-              }}
-              className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 w-full sm:w-auto transition-colors duration-200"
-              aria-label="กรองตามประเภท"
-            >
-              <option value="">ทั้งหมด</option>
-              {Object.entries(ID_PREFIX_LABELS).map(([code, label]) => (
-                <option key={code} value={code}>
-                  {code} = {label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={pageSize}
+          <select
+            value={categoryFilter}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value as CategoryFilterOption);
+              setPage(1);
+            }}
+            className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 w-full sm:w-auto transition-colors duration-200"
+            aria-label="กรองตามประเภท"
+          >
+            <option value="">ทั้งหมด</option>
+            {Object.entries(ID_PREFIX_LABELS).map(([code, label]) => (
+              <option key={code} value={code}>
+                {code} = {label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as StatusFilterOption);
+              setPage(1);
+            }}
+            className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 w-full sm:w-auto transition-colors duration-200"
+            aria-label="กรองตามสถานะ"
+          >
+            <option value="">All</option>
+            <option value="Active">Active</option>
+            <option value="Sold">Sold</option>
+          </select>
+          <select
+            value={pageSize}
               onChange={(e) => {
                 setPageSize(e.target.value as PageSizeOption);
                 setPage(1);
@@ -181,10 +200,12 @@ export default function HomePage() {
       ) : filteredAssets.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-600 p-12 text-center text-slate-400">
           {search.trim()
-            ? `ไม่พบรายการที่ตรงกับคำค้น "${search.trim()}"${categoryFilter ? ` ในประเภท ${categoryFilter}` : ""}`
-            : categoryFilter
-              ? `ไม่พบรายการในประเภท ${categoryFilter} (${ID_PREFIX_LABELS[categoryFilter]})`
-              : "ไม่พบรายการ"}
+            ? `ไม่พบรายการที่ตรงกับคำค้น "${search.trim()}"${categoryFilter ? ` ในประเภท ${categoryFilter}` : ""}${statusFilter ? ` สถานะ ${statusFilter}` : ""}`
+            : statusFilter
+              ? `ไม่พบรายการสถานะ ${statusFilter}${categoryFilter ? ` ในประเภท ${categoryFilter}` : ""}`
+              : categoryFilter
+                ? `ไม่พบรายการในประเภท ${categoryFilter} (${ID_PREFIX_LABELS[categoryFilter]})`
+                : "ไม่พบรายการ"}
         </div>
       ) : (
         <>
@@ -196,6 +217,11 @@ export default function HomePage() {
                   className="block rounded-xl border border-slate-700 bg-slate-800 overflow-hidden shadow-sm hover:shadow-lg hover:border-slate-600 hover:scale-[1.02] transition-all duration-200 ease-out"
                 >
                   <div className="aspect-square bg-slate-700 relative">
+                    {a.status === "Sold" && (
+                      <span className="absolute top-2 right-2 z-10 px-2 py-1 rounded bg-red-600 text-white text-xs font-bold uppercase tracking-wide shadow">
+                        Sold
+                      </span>
+                    )}
                     {a.image_url ? (
                       isDriveUrl(a.image_url) ? (
                         <img
