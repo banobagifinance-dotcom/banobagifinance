@@ -262,11 +262,20 @@ export default function HomePage() {
             >
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage(1)}
                 disabled={currentPage <= 1}
                 className="px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-200"
               >
-                ก่อนหน้า
+                หน้าแรก
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                aria-label="ก่อนหน้า"
+                className="px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-200 text-lg leading-none"
+              >
+                ←
               </button>
               <div className="flex items-center gap-1">
                 {showPages.map((p) => (
@@ -288,9 +297,18 @@ export default function HomePage() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
+                aria-label="ถัดไป"
+                className="px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-200 text-lg leading-none"
+              >
+                →
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage(totalPages)}
+                disabled={currentPage >= totalPages}
                 className="px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-200"
               >
-                ถัดไป
+                หน้าสุดท้าย
               </button>
               <span className="ml-2 text-sm text-slate-400">
                 หน้า {currentPage} / {totalPages}
