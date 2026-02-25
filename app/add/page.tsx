@@ -184,7 +184,7 @@ export default function AddAssetPage() {
               ID <span className="text-slate-500">(ตัวอักษร 2 ตัว - ตัวเลข 2 หลัก - ตัวเลข 3 หลัก)</span>
             </label>
             <p className="text-xs text-slate-500 mb-2">
-              EQ = อุปกรณ์สำนักงาน · FU = เครื่องตกแต่งสำนักงาน · KM = เครื่องมือเครื่องใช้
+              EQ = อุปกรณ์สำนักงาน · FU = เครื่องตกแต่งสำนักงาน · KM = เครื่องมือเครื่องใช้ · OT = อื่นๆ
             </p>
             <div className="flex items-center gap-2">
               <input

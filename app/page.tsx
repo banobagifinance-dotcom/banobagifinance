@@ -9,7 +9,7 @@ import { ID_PREFIX_LABELS } from "@/lib/asset-id-labels";
 
 type SortOption = "az" | "za" | "latest" | "price_desc" | "price_asc";
 type PageSizeOption = "15" | "50" | "100" | "all";
-type CategoryFilterOption = "" | "EQ" | "FU" | "KM";
+type CategoryFilterOption = "" | "EQ" | "FU" | "KM" | "OT";
 type StatusFilterOption = "" | "Active" | "Sold";
 
 export default function HomePage() {
