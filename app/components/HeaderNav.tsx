@@ -10,7 +10,7 @@ export default function HeaderNav() {
   const pathname = usePathname();
 
   return (
-    <header className="border-b border-slate-700 bg-slate-900/90 backdrop-blur">
+    <header className="no-print border-b border-slate-700 bg-slate-900/90 backdrop-blur">
       <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-between sm:items-center">
         <Link href="/" className="flex items-center gap-2 font-semibold text-lg text-slate-100 hover:text-sky-300 transition-colors duration-200 shrink-0">
           <Image
@@ -38,6 +38,12 @@ export default function HeaderNav() {
                     className="text-sky-400 hover:text-sky-300 font-medium transition-colors duration-200"
                   >
                     เพิ่มสินทรัพย์
+                  </Link>
+                  <Link
+                    href="/print"
+                    className="text-sky-400 hover:text-sky-300 font-medium transition-colors duration-200"
+                  >
+                    ปริ้น QR
                   </Link>
                   <button
                     type="button"

@@ -20,7 +20,7 @@ export default function RootLayout({
       <body className="min-h-screen antialiased bg-slate-900 text-slate-100">
         <AuthProvider>
           <HeaderNav />
-          <main className="max-w-6xl mx-auto px-4 py-6 animate-page-enter">{children}</main>
+          <main className="max-w-6xl mx-auto px-4 py-6 animate-page-enter print:py-0 print:px-0 print:max-w-none">{children}</main>
           <FabAddAsset />
           <FabHome />
         </AuthProvider>

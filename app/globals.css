@@ -38,3 +38,27 @@ body {
     animation: page-enter 0.35s ease-out forwards;
   }
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: #1e293b !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-qr-page {
+    break-inside: avoid;
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 auto !important;
+    padding: 10mm !important;
+    box-shadow: none !important;
+  }
+}
