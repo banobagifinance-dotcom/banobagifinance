@@ -25,7 +25,7 @@ export default function HeaderNav() {
         <nav className="flex items-center justify-center gap-4 w-full sm:w-auto sm:justify-end">
           <Link
             href="/"
-            className="text-slate-300 hover:text-white transition-colors duration-200"
+            className={`transition-colors duration-200 ${pathname === "/" ? "text-sky-400 font-medium" : "text-slate-300 hover:text-white"}`}
           >
             หน้าแรก
           </Link>
@@ -35,13 +35,13 @@ export default function HeaderNav() {
                 <>
                   <Link
                     href="/add"
-                    className="text-sky-400 hover:text-sky-300 font-medium transition-colors duration-200"
+                    className={`transition-colors duration-200 ${pathname === "/add" ? "text-sky-400 font-medium" : "text-slate-300 hover:text-white"}`}
                   >
                     เพิ่มสินทรัพย์
                   </Link>
                   <Link
                     href="/print"
-                    className="text-sky-400 hover:text-sky-300 font-medium transition-colors duration-200"
+                    className={`transition-colors duration-200 ${pathname === "/print" ? "text-sky-400 font-medium" : "text-slate-300 hover:text-white"}`}
                   >
                     ปริ้น QR
                   </Link>
